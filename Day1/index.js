@@ -1,4 +1,17 @@
 const express = require("express");
+const zod = require("zod");
+const app = express();
+app.use(express.json());
+
+// ZOD Validation
+const schema = zod.array(zod.number());
+
+const schemaTwo = zod.object({
+  email: zod.string().email(),
+  password: zod.string().min(8),
+  country: zod.literal("IN").or(zod.literal("US")),
+  kindeys: zod.array(zod.number()),
+});
 
 const users = [
   {
@@ -14,8 +27,17 @@ const users = [
   },
 ];
 
-const app = express();
-app.use(express.json());
+const middlewareOne = (req, res, next) => {
+  // Condition Checks
+  console.log("Inside Middleware One");
+  next();
+};
+
+const middlewareTwo = (req, res, next) => {
+  // Condition Checks
+  console.log("Inside Middleware Two");
+  next();
+};
 
 app.get("/", (req, res) => {
   const noOfKidneys = users[0]?.kindeys?.length;
@@ -69,4 +91,25 @@ app.delete("/", (req, res) => {
   }
 });
 
+// Middlewares
+app.post("/health-checkup", middlewareOne, middlewareTwo, (req, res) => {
+  const kidneys = req.body.kindeys;
+  const response = schema.safeParse(kidneys);
+
+  if (!response.success) {
+    res.status(411).json({
+      msg: "Invalid Input",
+    });
+  }
+  // const kindyeLength = kindeys.length;
+
+  res.json({
+    response,
+  });
+});
+
+// Global Catch
+app.use((err, req, res, next) => {
+  res.send("Something went wrong");
+});
 app.listen(3000);
